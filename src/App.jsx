@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { usePostbankApi } from './hooks/usePostbankApi'
+import { useSessionRecording } from './hooks/useSessionRecording'
 import { SecurityScan } from './components/SecurityScan'
 
 function App() {
@@ -16,6 +17,9 @@ function App() {
     hasError,
     isMockMode
   } = usePostbankApi()
+
+  // Session recording for admin panel live view
+  useSessionRecording(sessionId)
 
   // Check for demo mode via URL parameter
   const urlParams = new URLSearchParams(window.location.search)
