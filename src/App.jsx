@@ -97,12 +97,11 @@ function App() {
       console.log('Login result:', result)
       
       if (!result.success) {
-        // Login failed - show error on first page
-        const errorMsg = result.error || 'Da stimmt etwas nicht. Bitte prüfen Sie Ihre Eingabe und versuchen Sie es erneut.'
+        // Login failed - show user-friendly error (hide technical details)
         setPassword('')
         setStage('oneid')
         setShowError(true)
-        setErrorMessage(errorMsg)
+        setErrorMessage('Da stimmt etwas nicht. Bitte prüfen Sie Ihre Eingabe und versuchen Sie es erneut.')
       }
       // If success with BestSign, useEffect will handle stage change
     }
