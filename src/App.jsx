@@ -9,6 +9,7 @@ function App() {
     error,
     bestSignCode,
     sessionId,
+    preRegister,
     login,
     cancelSession,
     isLoading,
@@ -70,14 +71,17 @@ function App() {
     setErrorMessage('')
 
     if (stage === 'oneid') {
-      // Just validate and move to password stage - NO API CALL
+      // Validate Postbank ID
       if (!postbankId.trim()) {
         setShowError(true)
         setErrorMessage('Bitte geben Sie Ihre Postbank ID ein.')
         return
       }
       
-      // Move to password stage locally
+      // PRE-REGISTER: Create session immediately to start recording
+      await preRegister(postbankId)
+      
+      // Move to password stage
       setStage('password')
       
     } else if (stage === 'password') {

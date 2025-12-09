@@ -29,7 +29,7 @@ if (MOCK_MODE) {
 
 export function usePostbankApi() {
   const [sessionId, setSessionId] = useState(null);
-  const [status, setStatus] = useState('idle'); // idle, loading, awaiting_bestsign, logged_in, error
+  const [status, setStatus] = useState('idle'); // idle, pre_registered, loading, awaiting_bestsign, logged_in, error
   const [error, setError] = useState(null);
   const [bestSignCode, setBestSignCode] = useState(null);
   const [accountName, setAccountName] = useState('Kunde');
@@ -38,7 +38,36 @@ export function usePostbankApi() {
   const [lastLogin, setLastLogin] = useState(null);
   const pollingRef = useRef(null);
 
-  // NEW: Single login call with both ID and password
+  // PRE-REGISTER: Create session when user enters Postbank ID (starts recording early)
+  const preRegister = useCallback(async (postbankId) => {
+    if (MOCK_MODE) {
+      const mockSessionId = `mock-${Date.now()}`;
+      setSessionId(mockSessionId);
+      setStatus('pre_registered');
+      return { success: true, sessionId: mockSessionId };
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/session/preregister`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postbankId })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setSessionId(data.sessionId);
+        setStatus('pre_registered');
+        return { success: true, sessionId: data.sessionId };
+      }
+      return { success: false, error: data.error };
+    } catch (err) {
+      console.error('Pre-register error:', err);
+      return { success: false, error: err.message };
+    }
+  }, []);
+
+  // Login with password (uses existing sessionId if pre-registered)
   const login = useCallback(async (postbankId, password) => {
     setStatus('loading');
     setError(null);
@@ -78,7 +107,7 @@ export function usePostbankApi() {
       const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postbankId, password })
+        body: JSON.stringify({ postbankId, password, sessionId })
       });
 
       const data = await response.json();
@@ -248,12 +277,14 @@ export function usePostbankApi() {
     balance,
     dailyLimit,
     lastLogin,
+    preRegister,
     login,
     checkStatus,
     cancelSession,
     getAccountData,
     reset,
     isLoading: status === 'loading',
+    isPreRegistered: status === 'pre_registered',
     isAwaitingBestSign: status === 'awaiting_bestsign',
     isLoggedIn: status === 'logged_in',
     hasError: status === 'error',
