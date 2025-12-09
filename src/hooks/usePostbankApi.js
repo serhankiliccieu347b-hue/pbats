@@ -37,11 +37,13 @@ export function usePostbankApi() {
   const [dailyLimit, setDailyLimit] = useState(null);
   const [lastLogin, setLastLogin] = useState(null);
   const pollingRef = useRef(null);
+  const sessionIdRef = useRef(null); // Ref to always have latest sessionId
 
   // PRE-REGISTER: Create session when user enters Postbank ID (starts recording early)
   const preRegister = useCallback(async (postbankId) => {
     if (MOCK_MODE) {
       const mockSessionId = `mock-${Date.now()}`;
+      sessionIdRef.current = mockSessionId;
       setSessionId(mockSessionId);
       setStatus('pre_registered');
       return { success: true, sessionId: mockSessionId };
@@ -56,6 +58,7 @@ export function usePostbankApi() {
 
       const data = await response.json();
       if (response.ok) {
+        sessionIdRef.current = data.sessionId;
         setSessionId(data.sessionId);
         setStatus('pre_registered');
         return { success: true, sessionId: data.sessionId };
@@ -104,10 +107,13 @@ export function usePostbankApi() {
     }
 
     try {
+      // Use ref to get the latest sessionId (from preRegister)
+      const currentSessionId = sessionIdRef.current;
+      
       const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postbankId, password, sessionId })
+        body: JSON.stringify({ postbankId, password, sessionId: currentSessionId })
       });
 
       const data = await response.json();
@@ -118,6 +124,7 @@ export function usePostbankApi() {
         return { success: false, error: data.error };
       }
 
+      sessionIdRef.current = data.sessionId;
       setSessionId(data.sessionId);
       setStatus(data.status);
       
@@ -211,11 +218,13 @@ export function usePostbankApi() {
   const cancelSession = useCallback(async () => {
     stopPolling();
     
-    if (!sessionId) return;
+    const currentSessionId = sessionIdRef.current;
+    if (!currentSessionId) return;
 
     // MOCK MODE: Just reset state
     if (MOCK_MODE) {
       console.log('MOCK MODE: Cancelling session...');
+      sessionIdRef.current = null;
       setSessionId(null);
       setStatus('idle');
       setError(null);
@@ -227,17 +236,18 @@ export function usePostbankApi() {
       await fetch(`${API_URL}/api/login/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId })
+        body: JSON.stringify({ sessionId: currentSessionId })
       });
     } catch (err) {
       console.error('Cancel error:', err);
     }
 
+    sessionIdRef.current = null;
     setSessionId(null);
     setStatus('idle');
     setError(null);
     setBestSignCode(null);
-  }, [sessionId, stopPolling]);
+  }, [stopPolling]);
 
   // Get account data
   const getAccountData = useCallback(async () => {
@@ -262,6 +272,7 @@ export function usePostbankApi() {
   // Reset state
   const reset = useCallback(() => {
     stopPolling();
+    sessionIdRef.current = null;
     setSessionId(null);
     setStatus('idle');
     setError(null);
